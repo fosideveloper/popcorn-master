@@ -349,9 +349,9 @@
         if (audioCtx.state === 'suspended') audioCtx.resume();
     };
 
-    const popSounds = [
-        new Audio('pop1.mp3'), new Audio('pop2.mp3'), new Audio('pop3.mp3'), new Audio('pop4.mp3'), new Audio('pop5.mp3')
-    ];
+    // Ses dosyaları Web Audio ile bir kez decode edilir (iOS'ta cloneNode'dan çok daha hızlı)
+    const popFiles = ['pop1.mp3','pop2.mp3','pop3.mp3','pop4.mp3','pop5.mp3'];
+    let popBuffers = [];
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -396,6 +396,14 @@
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+    // pop seslerini arka planda yükle + decode et (bir kez)
+    popFiles.forEach((f, i) => {
+        fetch(f).then(r => r.arrayBuffer())
+                .then(b => audioCtx.decodeAudioData(b))
+                .then(buf => { popBuffers[i] = buf; })
+                .catch(e => console.log("Audio load:", e));
+    });
+
     let difficultyTimer = 0;
     let gameState = 'MENU'; 
     let gameMode = 'ARCADE'; 
@@ -409,6 +417,7 @@
     let spawnTimer = 0;
     let reviveCount = 0;
     let uiLockUntil = 0; // Ekran geçişlerinde "ghost-tap" sızmasını engeller
+    let spawnRect = { top: 0, left: 0, w: 0, h: 0 }; // tencere doğuş alanı (önbellek)
 
     const input = { x: -100, y: -100, isDown: false, points: [] };
     const TRAIL_LENGTH = 8; 
@@ -548,6 +557,22 @@
     function resize() {
         width = canvas.width = LOGICAL_W;
         height = canvas.height = LOGICAL_H;
+        updateSpawnRect();
+    }
+    // Tencere doğuş alanını bir kez hesapla (her doğuşta getBoundingClientRect çağırma)
+    function updateSpawnRect() {
+        const pot = document.getElementById('potImage');
+        const stage = document.getElementById('gameStage');
+        if (!pot || !stage) return;
+        const potRect = pot.getBoundingClientRect();
+        const stageRect = stage.getBoundingClientRect();
+        if (!stageRect.width || !stageRect.height) return;
+        const scaleX = canvas.width / stageRect.width;
+        const scaleY = canvas.height / stageRect.height;
+        spawnRect.top  = (potRect.top - stageRect.top) * scaleY;
+        spawnRect.left = (potRect.left - stageRect.left) * scaleX;
+        spawnRect.w = potRect.width * scaleX;
+        spawnRect.h = potRect.height * scaleY;
     }
     window.addEventListener('resize', resize);
     window.addEventListener('orientationchange', resize);
@@ -591,6 +616,7 @@
         mainMenu.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
         gameUI.classList.remove('hidden');
+        updateSpawnRect();
         updateHUD();
         animationId = requestAnimationFrame(gameLoop);
     }
@@ -614,20 +640,10 @@
     class Kernel {
         constructor() { this.reset(); }
         reset() {
-            const pot = document.getElementById('potImage');
-            const stage = document.getElementById('gameStage');
-            const potRect = pot.getBoundingClientRect();
-            const stageRect = stage.getBoundingClientRect();
-            // Ekran (CSS) koordinatlarını canvas mantıksal koordinatlarına çevir
-            const scaleX = canvas.width / stageRect.width;
-            const scaleY = canvas.height / stageRect.height;
-            const potTop = (potRect.top - stageRect.top) * scaleY;
-            const potLeft = (potRect.left - stageRect.left) * scaleX;
-            const potW = potRect.width * scaleX;
-            const potH = potRect.height * scaleY;
-            this.y = potTop + potH * 0.55;
-            const spawnWidth = potW * 0.4;
-            const startX = potLeft + potW * 0.3;
+            // Önbellekteki doğuş alanını kullan (reflow yapma)
+            this.y = spawnRect.top + spawnRect.h * 0.55;
+            const spawnWidth = spawnRect.w * 0.4;
+            const startX = spawnRect.left + spawnRect.w * 0.3;
             this.x = startX + Math.random() * spawnWidth;
             this.vx = (Math.random() - 0.5) * 2;
             this.vy = -(Math.random() * 5 + 6);
@@ -699,12 +715,12 @@
     }
 
     function createExplosion(x, y, type) {
-        let count = 20; let hue = 60; let speedMult = 1;
-        if (type === 'normal') { hue = 60; count = 15; }       
-        else if (type === 'golden') { hue = 45; count = 40; speedMult = 1.5; } 
-        else if (type === 'frozen') { hue = 190; count = 25; } 
-        else if (type === 'burnt')  { hue = 0; count = 10; }   
-        else if (type === 'bomb')   { hue = 0; count = 60; speedMult = 2.0; } 
+        let count = 12; let hue = 60; let speedMult = 1;
+        if (type === 'normal') { hue = 60; count = 8; }
+        else if (type === 'golden') { hue = 45; count = 20; speedMult = 1.5; }
+        else if (type === 'frozen') { hue = 190; count = 14; }
+        else if (type === 'burnt')  { hue = 0; count = 6; }
+        else if (type === 'bomb')   { hue = 0; count = 28; speedMult = 2.0; }
         for(let i=0; i<count; i++) {
             const angle = Math.random() * Math.PI * 2; const velocity = (Math.random() * 10 + 2) * speedMult; 
             let color;
@@ -742,12 +758,17 @@
     }
     
     function playPopSound() {
-        const selectedSound = popSounds[Math.floor(Math.random() * popSounds.length)];
-        if (selectedSound) {
-            const sound = selectedSound.cloneNode(); 
-            sound.volume = 0.5; sound.playbackRate = 0.9 + Math.random() * 0.2; 
-            sound.play().catch(e => console.log("Sound error:", e));
-        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (!popBuffers.length) return;
+        const buf = popBuffers[Math.floor(Math.random() * popBuffers.length)];
+        if (!buf) return;
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.playbackRate.value = 0.9 + Math.random() * 0.2;
+        const gain = audioCtx.createGain();
+        gain.gain.value = 0.5;
+        src.connect(gain); gain.connect(audioCtx.destination);
+        src.start();
     }
 
     function playTone(freq, type) {
@@ -803,25 +824,32 @@
         entities.forEach(e => { e.update(); e.draw(ctx); });
         
         particles = particles.filter(p => p.life > 0);
-        ctx.globalCompositeOperation = 'lighter'; 
-        particles.forEach(p => {
+        // 1) Tüm parçacıkların hareketini güncelle
+        for (const p of particles) {
             p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.vx *= 0.92; p.vy *= 0.92;
-            p.life -= p.decay; if (p.life <= 0) return;
-            ctx.save(); ctx.globalAlpha = p.life; 
-            if (p.isText) {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.font = "900 24px Arial"; ctx.fillStyle = p.color;
-                ctx.strokeStyle = "black"; ctx.lineWidth = 3;
-                ctx.strokeText(p.text, p.x, p.y - (1-p.life)*30);
-                ctx.fillText(p.text, p.x, p.y - (1-p.life)*30);
-                ctx.globalCompositeOperation = 'lighter';
-            } else {
-                ctx.fillStyle = p.color; ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-            }
-            ctx.restore();
-        });
+            p.life -= p.decay;
+        }
+        // 2) Nokta parçacıklar tek geçişte ('lighter') — save/restore yok (iOS için hızlı)
+        ctx.globalCompositeOperation = 'lighter';
+        for (const p of particles) {
+            if (p.life <= 0 || p.isText) continue;
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // 3) Yazı parçacıklar ('source-over'), font bir kez ayarlanır
         ctx.globalCompositeOperation = 'source-over';
+        ctx.font = "900 24px Arial"; ctx.lineWidth = 3; ctx.strokeStyle = "black";
+        for (const p of particles) {
+            if (p.life <= 0 || !p.isText) continue;
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.strokeText(p.text, p.x, p.y - (1-p.life)*30);
+            ctx.fillText(p.text, p.x, p.y - (1-p.life)*30);
+        }
+        ctx.globalAlpha = 1;
         updateHUD();
         animationId = requestAnimationFrame(gameLoop);
     }
