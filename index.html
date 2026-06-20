@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -265,24 +265,24 @@
     
     <div id="gameUI" class="ui-layer hidden">
         <div class="hud-bar">
-            <div id="scoreDisplay" class="hud-panel-item">SKOR: 0</div>
-            <div id="btnMenu" class="exit-btn">MENÜ</div>
-            <div id="infoDisplay" class="hud-panel-item">SÜRE: --</div>
+            <div id="scoreDisplay" class="hud-panel-item">SCORE: 0</div>
+            <div id="btnMenu" class="exit-btn">MENU</div>
+            <div id="infoDisplay" class="hud-panel-item">TIME: --</div>
         </div>
     </div>
 
     <div id="mainMenu" class="menu-screen">
         
        <div class="mode-buttons-container">
-            <img src="buton_sonsuz.png" alt="Sonsuz Mod" class="image-btn" 
+            <img src="buton_sonsuz.png" alt="Endless Mode" class="image-btn"
                  ontouchstart="event.preventDefault(); startGame('ARCADE')" 
                  onmousedown="startGame('ARCADE')">
 
-            <img src="buton_zaman.png" alt="Zamanla Yarış" class="image-btn" 
+            <img src="buton_zaman.png" alt="Time Attack" class="image-btn"
                  ontouchstart="event.preventDefault(); startGame('TIME')" 
                  onmousedown="startGame('TIME')">
 
-            <img src="buton_survival.png" alt="Zor Mod" class="image-btn" 
+            <img src="buton_survival.png" alt="Hard Mode" class="image-btn"
                  ontouchstart="event.preventDefault(); startGame('SURVIVAL')" 
                  onmousedown="startGame('SURVIVAL')">
         </div>
@@ -291,42 +291,42 @@
             <div id="authSection">
                 <button id="loginBtn" onclick="loginWithGoogle()">
                     <svg width="18" height="18" viewBox="0 0 18 18" style="margin-right:5px"><path d="M17.64 9.2c0-.637-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706a5.41 5.41 0 0 1-.282-1.706c0-.593.102-1.17.282-1.706V4.962H.957A9.006 9.006 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962l3.007 2.332C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
-                    Google ile Giriş
+                    Sign in with Google
                 </button>
                 <p id="welcomeText" style="color:#ddd; margin-top:5px; font-size:12px; font-family:sans-serif; display:none;"></p>
             </div>
 
             <div class="leaderboard-container">
                 <div class="lb-tabs">
-                    <button class="tab-btn active" onclick="loadLeaderboard('TIME', this)">60sn</button>
-                    <button class="tab-btn" onclick="loadLeaderboard('SURVIVAL', this)">Zor Mod</button>
+                    <button class="tab-btn active" onclick="loadLeaderboard('TIME', this)">60s</button>
+                    <button class="tab-btn" onclick="loadLeaderboard('SURVIVAL', this)">Hard Mode</button>
                 </div>
                 <div id="leaderboardList">
-                    <div style="text-align:center; padding-top:20px; color:#aaa;">Yükleniyor...</div>
+                    <div style="text-align:center; padding-top:20px; color:#aaa;">Loading...</div>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="gameOverScreen" class="menu-screen hidden">
-        <h1 style="font-size: 60px; color:#ff5252;">OYUN BİTTİ!</h1>
-        <p id="finalScoreText" style="font-size:30px; font-family:'Titan One', cursive; color:#fff; margin-bottom:20px;">Skorun: 0</p>
-        
-        <button id="adButton" class="game-btn btn-green" style="font-size:22px; margin-bottom:15px;" ontouchstart="watchAdToRevive()" onmousedown="watchAdToRevive()">
-            📺 REKLAM İZLE VE DEVAM ET
+        <h1 style="font-size: 60px; color:#ff5252;">GAME OVER!</h1>
+        <p id="finalScoreText" style="font-size:30px; font-family:'Titan One', cursive; color:#fff; margin-bottom:20px;">Your score: 0</p>
+
+        <button id="adButton" class="game-btn btn-green" style="font-size:22px; margin-bottom:15px;" ontouchstart="event.preventDefault(); watchAdToRevive()" onmousedown="watchAdToRevive()">
+            📺 WATCH AD & CONTINUE
         </button>
-        <p id="adStatus" style="display:none; color:yellow; font-family:sans-serif;">Reklam Yükleniyor...</p>
-        
-        <button class="game-btn btn-blue" style="font-size:22px;" ontouchstart="showMainMenu()" onmousedown="showMainMenu()">ANA MENÜYE DÖN</button>
+        <p id="adStatus" style="display:none; color:yellow; font-family:sans-serif;">Loading ad...</p>
+
+        <button class="game-btn btn-blue" style="font-size:22px;" ontouchstart="event.preventDefault(); showMainMenu()" onmousedown="showMainMenu()">BACK TO MENU</button>
     </div>
 
     <div id="exitModal" class="modal-overlay hidden">
         <div class="modal-box">
-            <h2>EMİN MİSİN?</h2>
-            <p>Oyun ve skorun silinecek.<br>Menüye dönmek istiyor musun?</p>
+            <h2>ARE YOU SURE?</h2>
+            <p>Your game and score will be lost.<br>Return to the menu?</p>
             <div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">
-                <button id="btnModalContinue" class="game-btn btn-green" style="font-size:18px; padding:5px 15px;">DEVAM ET</button>
-                <button id="btnModalExit" class="game-btn btn-red" style="font-size:18px; padding:5px 15px;">ÇIKIŞ YAP</button>
+                <button id="btnModalContinue" class="game-btn btn-green" style="font-size:18px; padding:5px 15px;">CONTINUE</button>
+                <button id="btnModalExit" class="game-btn btn-red" style="font-size:18px; padding:5px 15px;">EXIT</button>
             </div>
         </div>
     </div>
@@ -407,7 +407,8 @@
     let timeLeft = 60;
     let lastTime = 0;
     let spawnTimer = 0;
-    let reviveCount = 0; 
+    let reviveCount = 0;
+    let uiLockUntil = 0; // Ekran geçişlerinde "ghost-tap" sızmasını engeller
 
     const input = { x: -100, y: -100, isDown: false, points: [] };
     const TRAIL_LENGTH = 8; 
@@ -419,10 +420,10 @@
             document.getElementById('loginBtn').style.display = 'none'; 
             const welcome = document.getElementById('welcomeText');
             welcome.style.display = 'block';
-            welcome.innerText = "Selam " + window.currentUser.displayName.split(" ")[0];
-            loadLeaderboard('TIME'); 
+            welcome.innerText = "Hi " + window.currentUser.displayName.split(" ")[0];
+            loadLeaderboard('TIME');
         } catch (error) {
-            console.error("Giriş Hatası:", error);
+            console.error("Sign-in error:", error);
         }
     };
 
@@ -432,10 +433,10 @@
             document.getElementById('loginBtn').style.display = 'none'; 
             const welcome = document.getElementById('welcomeText');
             welcome.style.display = 'block';
-            welcome.innerText = "Selam " + user.displayName.split(" ")[0];
-            loadLeaderboard('TIME'); 
+            welcome.innerText = "Hi " + user.displayName.split(" ")[0];
+            loadLeaderboard('TIME');
         } else {
-            loadLeaderboard('TIME'); // Giriş yapmasa da tabloyu görsün (boş veya genel)
+            loadLeaderboard('TIME'); // Show table even if not signed in
         }
     });
 
@@ -467,7 +468,7 @@
                 });
                 loadLeaderboard(saveMode);
             }
-        } catch (e) { console.error("Kaydetme hatası: ", e); }
+        } catch (e) { console.error("Save error: ", e); }
     };
 
     window.loadLeaderboard = async (mode = 'TIME', btnElement = null) => {
@@ -476,7 +477,7 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btnElement.classList.add('active');
         }
-        div.innerHTML = "<div style='text-align:center; padding:10px; color:#aaa;'>Yükleniyor...</div>";
+        div.innerHTML = "<div style='text-align:center; padding:10px; color:#aaa;'>Loading...</div>";
 
         try {
             const q = query(
@@ -502,11 +503,11 @@
             });
             html += "</ul>";
             
-            if(snapshot.empty) html = "<div style='text-align:center; color:#aaa; font-size:10px; margin-top:10px;'>Henüz skor yok.</div>";
+            if(snapshot.empty) html = "<div style='text-align:center; color:#aaa; font-size:10px; margin-top:10px;'>No scores yet.</div>";
             div.innerHTML = html;
         } catch(e) {
-            console.error("Tablo hatası:", e);
-            div.innerHTML = "<div style='text-align:center; color:red; font-size:10px;'>Hata oluştu.</div>";
+            console.error("Leaderboard error:", e);
+            div.innerHTML = "<div style='text-align:center; color:red; font-size:10px;'>An error occurred.</div>";
         }
     };
 
@@ -573,9 +574,12 @@
         gameOverScreen.classList.add('hidden');
         mainMenu.classList.remove('hidden');
         entities = []; particles = []; score = 0;
+        uiLockUntil = performance.now() + 500; // menüye dönünce gelen ghost-tap'ı yut
     }
 
     window.startGame = function(mode) {
+        // Ekran yeni geçtiyse (ör. menüye dönüş) sızan dokunmayı yok say
+        if (performance.now() < uiLockUntil) return;
         if (animationId) cancelAnimationFrame(animationId);
         reviveCount = 0; gameMode = mode; gameState = 'PLAYING';
         score = 0; entities = []; particles = [];
@@ -593,8 +597,9 @@
 
     function endGame() {
         gameState = 'GAMEOVER';
-        finalScoreText.innerText = "Skorun: " + score;
-        gameOverScreen.classList.remove('hidden'); 
+        finalScoreText.innerText = "Your score: " + score;
+        uiLockUntil = performance.now() + 500; // oyundan kalan dokunma butona basmasın
+        gameOverScreen.classList.remove('hidden');
         gameUI.classList.add('hidden');            
         
         const adBtn = document.getElementById('adButton');
@@ -730,10 +735,10 @@
         return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
     }
     function updateHUD() {
-        scoreDisplay.innerText = "SKOR: " + score;
-        if (gameMode === 'TIME') infoDisplay.innerText = "SÜRE: " + formatTime(Math.ceil(timeLeft));
-        else if (gameMode === 'SURVIVAL') infoDisplay.innerText = "SÜRE: " + formatTime(Math.floor(difficultyTimer / 1000));
-        else infoDisplay.innerText = "MOD: SONSUZ";
+        scoreDisplay.innerText = "SCORE: " + score;
+        if (gameMode === 'TIME') infoDisplay.innerText = "TIME: " + formatTime(Math.ceil(timeLeft));
+        else if (gameMode === 'SURVIVAL') infoDisplay.innerText = "TIME: " + formatTime(Math.floor(difficultyTimer / 1000));
+        else infoDisplay.innerText = "MODE: ENDLESS";
     }
     
     function playPopSound() {
@@ -741,7 +746,7 @@
         if (selectedSound) {
             const sound = selectedSound.cloneNode(); 
             sound.volume = 0.5; sound.playbackRate = 0.9 + Math.random() * 0.2; 
-            sound.play().catch(e => console.log("Ses hatası:", e));
+            sound.play().catch(e => console.log("Sound error:", e));
         }
     }
 
@@ -822,20 +827,21 @@
     }
 
     window.watchAdToRevive = function() {
+        if (performance.now() < uiLockUntil) return; // oyundan sızan dokunmayı yok say
         reviveCount++;
         const adButton = document.getElementById('adButton');
         const adStatus = document.getElementById('adStatus');
         if(adButton) adButton.classList.add('hidden');
-        if(adStatus) { adStatus.style.display = 'block'; adStatus.innerText = "Reklam Oynatılıyor... (3sn)"; }
+        if(adStatus) { adStatus.style.display = 'block'; adStatus.innerText = "Playing ad... (3s)"; }
         setTimeout(() => {
             if(adStatus) adStatus.style.display = 'none';
             gameState = 'PLAYING';
             document.getElementById('gameUI').classList.remove('hidden');
             document.getElementById('gameOverScreen').classList.add('hidden');
             entities = entities.filter(e => e.type !== 'bomb');
-            if (gameMode === 'TIME') { timeLeft += 15; createFloatingText(width/2, height/2, "+15 SANİYE!", "lime"); } 
-            else if (gameMode === 'SURVIVAL') createFloatingText(width/2, height/2, "SON ŞANS!", "red");
-            else createFloatingText(width/2, height/2, "DEVAM ET!", "lime");
+            if (gameMode === 'TIME') { timeLeft += 15; createFloatingText(width/2, height/2, "+15 SECONDS!", "lime"); }
+            else if (gameMode === 'SURVIVAL') createFloatingText(width/2, height/2, "LAST CHANCE!", "red");
+            else createFloatingText(width/2, height/2, "CONTINUE!", "lime");
             lastTime = performance.now(); animationId = requestAnimationFrame(gameLoop); 
         }, 3000); 
     }
