@@ -657,11 +657,11 @@
         }
         pickType() {
             const r = Math.random();
-            if (r < 0.08) return 'bomb';   // %8  (önceki %5)
-            if (r < 0.13) return 'golden'; // %5
-            if (r < 0.23) return 'frozen'; // %10
-            if (r < 0.33) return 'burnt';  // %10 (önceki %5)
-            return 'normal';               // %67
+            if (r < 0.10) return 'bomb';   // %10
+            if (r < 0.15) return 'golden'; // %5
+            if (r < 0.25) return 'frozen'; // %10
+            if (r < 0.41) return 'burnt';  // %16
+            return 'normal';               // %59
         }
         update() {
             this.vy += this.gravity; this.x += this.vx; this.y += this.vy;
