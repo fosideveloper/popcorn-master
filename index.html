@@ -232,6 +232,7 @@
             color: #fff;
             cursor: pointer;
             letter-spacing: 1px;
+            text-shadow: 0 2px 2px rgba(0,0,0,.4);
             box-shadow: 0 5px 0px #3e2723;
             transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
@@ -239,6 +240,22 @@
         .btn-green { background: linear-gradient(to bottom, #66bb6a, #43a047); }
         .btn-blue  { background: linear-gradient(to bottom, #42a5f5, #1e88e5); }
         .btn-red   { background: linear-gradient(to bottom, #ef5350, #e53935); }
+
+        /* --- OYUN BİTTİ KUTUSU (menü modalıyla aynı stil) --- */
+        #gameOverScreen {
+            /* arka planı hafif karart, kutu öne çıksın (modal hissi) */
+            background-image: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url('background_start.png');
+        }
+        .gameover-box {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 16px; width: 84%; max-width: 340px;
+        }
+        .gameover-box h2 { font-size: 46px; margin: 0; line-height: 1; }
+        .gameover-box #finalScoreText {
+            font-family: 'Titan One', cursive; color: #4e342e;
+            font-size: 26px; margin: 0; text-shadow: none;
+        }
+        .gameover-box .game-btn { width: 100%; font-size: 18px; letter-spacing: .5px; }
 
         /* Alt panel (Google giriş + liderlik tablosu) */
         .bottom-panel {
@@ -309,15 +326,17 @@
     </div>
 
     <div id="gameOverScreen" class="menu-screen hidden">
-        <h1 style="font-size: 60px; color:#ff5252;">GAME OVER!</h1>
-        <p id="finalScoreText" style="font-size:30px; font-family:'Titan One', cursive; color:#fff; margin-bottom:20px;">Your score: 0</p>
+        <div class="modal-box gameover-box">
+            <h2>GAME OVER!</h2>
+            <p id="finalScoreText">Your score: 0</p>
 
-        <button id="adButton" class="game-btn btn-green" style="font-size:22px; margin-bottom:15px;" ontouchstart="event.preventDefault(); watchAdToRevive()" onmousedown="watchAdToRevive()">
-            📺 WATCH AD & CONTINUE
-        </button>
-        <p id="adStatus" style="display:none; color:yellow; font-family:sans-serif;">Loading ad...</p>
+            <button id="adButton" class="game-btn btn-green" ontouchstart="event.preventDefault(); watchAdToRevive()" onmousedown="watchAdToRevive()">
+                📺 WATCH AD & CONTINUE
+            </button>
+            <p id="adStatus" style="display:none; color:#4e342e; font-family:sans-serif; font-weight:bold; margin:0;">Loading ad...</p>
 
-        <button class="game-btn btn-blue" style="font-size:22px;" ontouchstart="event.preventDefault(); showMainMenu()" onmousedown="showMainMenu()">BACK TO MENU</button>
+            <button class="game-btn btn-blue" ontouchstart="event.preventDefault(); showMainMenu()" onmousedown="showMainMenu()">BACK TO MENU</button>
+        </div>
     </div>
 
     <div id="exitModal" class="modal-overlay hidden">
