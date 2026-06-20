@@ -646,10 +646,10 @@
             const startX = spawnRect.left + spawnRect.w * 0.3;
             this.x = startX + Math.random() * spawnWidth;
             this.vx = (Math.random() - 0.5) * 2;
-            this.vy = -(Math.random() * 5 + 8);   // biraz daha hızlı fırlama (8–13)
+            this.vy = -(Math.random() * 6 + 10);  // daha hızlı fırlama (10–16)
             this.radius = 25;
             this.rotation = Math.random() * Math.PI * 2;
-            this.gravity = 0.13;                   // ekran dışına kaçmasın diye yerçekimi artırıldı
+            this.gravity = 0.19;                   // ekran dışına kaçmasın diye yerçekimi artırıldı
             this.state = 'raw';
             this.type = this.pickType();
             this.hp = (this.type === 'frozen') ? 2 : 1;
@@ -657,9 +657,11 @@
         }
         pickType() {
             const r = Math.random();
-            if (r < 0.05) return 'bomb'; if (r < 0.10) return 'golden'; 
-            if (r < 0.20) return 'frozen'; if (r < 0.25) return 'burnt';  
-            return 'normal';               
+            if (r < 0.08) return 'bomb';   // %8  (önceki %5)
+            if (r < 0.13) return 'golden'; // %5
+            if (r < 0.23) return 'frozen'; // %10
+            if (r < 0.33) return 'burnt';  // %10 (önceki %5)
+            return 'normal';               // %67
         }
         update() {
             this.vy += this.gravity; this.x += this.vx; this.y += this.vy;
