@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Popcorn Master</title>
+    <style>
+        /* 1. ADIM: Google Font'u En Tepeye Ekledik */
+        @import url('https://fonts.googleapis.com/css2?family=Titan+One&display=swap');
+
+        /* (Eski @font-face kısmını sildik) */
+
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            /* Kenar boşlukları (letterbox) için koyu fon */
+            background-color: #14141f;
+            background-image: radial-gradient(circle at 50% 30%, #26263d 0%, #14141f 70%);
+            touch-action: none;
+
+            /* 2. ADIM: Fontu 'Titan One' olarak değiştirdik */
+            font-family: 'Titan One', cursive;
+            user-select: none;
+
+            /* Oyun sahnesini ekranda ortala */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- SABİT ORANLI OYUN SAHNESİ (telefon çerçevesi) --- */
+        /* Her cihazda aynı 9:16 dikey oran; ekrana sığacak şekilde ölçeklenir */
+        #gameStage {
+            position: relative;
+            width: min(100vw, calc(100vh * 9 / 16));
+            height: min(100vh, calc(100vw * 16 / 9));
+            width: min(100vw, calc(100dvh * 9 / 16));
+            height: min(100dvh, calc(100vw * 16 / 9));
+            overflow: hidden;
+            background: #1a1a2e url('background.png') center bottom / cover no-repeat;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            /* İç öğeler sahneye göre ölçeklensin (cqw/cqh birimleri) */
+            container-type: size;
+        }
+
+        /* --- INTRO EKRANI --- */
+        #introScreen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 9999; background-color: #000;
+            display: flex; justify-content: center; align-items: center;
+        }
+        #introVideo {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+        }
+
+        /* --- OYUN İÇİ ARAYÜZ (HUD) --- */
+        canvas {
+            display: block; position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 10;
+        }
+        #potImage {
+            position: absolute; bottom: -5%; left: 50%;
+            transform: translateX(-50%); width: 100%; max-width: 600px;
+            pointer-events: none; z-index: 5;
+        }
+        .ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column;
+            z-index: 1000;
+        }
+        .hud-bar {
+            padding: max(20px, env(safe-area-inset-top)) 20px 0 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            pointer-events: none;
+        }
+        .hud-panel-item, .exit-btn {
+            background: linear-gradient(to bottom, #fff8e1, #ffecb3);
+            border: 3px solid #5d4037; border-radius: 15px;
+            padding: 8px 15px; font-size: 20px; color: #4e342e;
+            box-shadow: 0 4px 0px #3e2723; pointer-events: auto;
+            letter-spacing: 1px;
+            font-family: 'Titan One', cursive; /* Font Güncellendi */
+        }
+        .exit-btn { color: #d32f2f; cursor: pointer; }
+        .exit-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #3e2723; }
+        .hidden { display: none !important; }
+
+        /* --- ANA MENÜ TASARIMI --- */
+        /* --- ANA MENÜ VE OYUN BİTTİ EKRANI --- */
+        .menu-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            
+            /* YENİ: MENÜYE ÖZEL ARKA PLAN */
+            background-image: url('background_start.png'); /* Menü resminin tam adı */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            
+            /* (Opsiyonel) Menü resmi çok parlaksa yazılar/butonlar okunsun diye
+               resmin üzerine hafif bir siyah tül çekmek istersen şu iki satırı açabilirsin: */
+            /* background-color: rgba(0, 0, 0, 0.4); */
+            /* background-blend-mode: darken; */
+
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 100;
+        }
+
+        /* 1. BAŞLIK */
+        h1 {
+            font-family: 'Titan One', cursive; /* Font Güncellendi */
+            font-size: 75px; margin: 0; line-height: 0.9;
+            background: linear-gradient(to bottom, #ffeb3b 0%, #ff9800 50%, #ff5722 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(4px 4px 0px #000);
+            text-align: center; letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+
+       /* --- RESİMLİ BUTON KONTEYNERİ --- */
+        .mode-buttons-container {
+            display: flex;
+            flex-direction: column;
+            
+            /* 1. BUTONLAR ARASI BOŞLUK */
+            /* Resimdeki gibi birbirine yapışık olmasını istiyorsan 5px veya 0px yap. 
+               Hatta negatif değer (-5px) vererek hafifçe üst üste binmelerini bile sağlayabilirsin. */
+            gap: 1cqh;
+
+            /* 2. AŞAĞI İTME (Arka plandaki yazıdan kurtarmak için) */
+            /* Sahne yüksekliğine göreli (cqh): tüm cihazlarda aynı konum.
+               Butonları aşağı/yukarı almak için bu değeri değiştir. */
+            margin-top: 30cqh;
+
+            /* Alt panelle (Google butonu) aradaki mesafe */
+            margin-bottom: 1cqh;
+            
+            width: 85%;
+            max-width: 320px;
+            align-items: center;
+        }
+
+        .image-btn {
+            width: 80%; /* Konteynerin genişliğini al */
+            height: auto; /* Oranı bozma */
+            cursor: pointer;
+            transition: transform 0.1s ease; /* Tıklama animasyonu için */
+            
+            /* Mobilde resmin üzerine basılı tutunca seçilmesini engeller */
+            user-select: none;
+            -webkit-user-drag: none;
+            -webkit-touch-callout: none;
+            
+            /* EĞER resimlerinde gölge yoksa bu satırı kullanabilirsin (varsa bu satırı sil): */
+            filter: drop-shadow(0px 8px 5px rgba(0,0,0,0.4));
+        }
+
+        /* Butona basıldığında küçülme ve aşağı inme efekti */
+        .image-btn:active {
+            transform: scale(0.93) translateY(4px);
+            filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5));
+        }
+
+        /* Google Butonu - Burası Okunaklı olsun diye Segoe UI kalabilir veya Titan One yapabilirsin */
+        #authSection { display: flex; flex-direction: column; align-items: center; }
+        #loginBtn {
+            font-family: 'Segoe UI', sans-serif; /* Okunabilirlik için standart font */
+            background: white; color: #333; border: none;
+            padding: 8px 12px; border-radius: 20px;
+            font-weight: bold; font-size: 14px;
+            display: flex; align-items: center; gap: 5px;
+            box-shadow: 0 4px 0 #ccc; cursor: pointer;
+        }
+        #loginBtn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* Liderlik Tablosu Kutusu */
+        .leaderboard-container {
+            background: rgba(0, 0, 0, 0.5); 
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            width: 160px; height: 140px;
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+        
+        .lb-tabs {
+            display: flex; justify-content: space-around;
+            background: rgba(0,0,0,0.3);
+            border-radius: 13px 13px 0 0;
+            padding: 5px;
+        }
+        .tab-btn {
+            background: transparent; border: none; color: #aaa;
+            font-family: 'Titan One', cursive; /* Font Güncellendi */
+            font-size: 16px; cursor: pointer;
+        }
+        .tab-btn.active {
+            color: #ffeb3b; text-shadow: 0 0 5px orange;
+        }
+        
+        #leaderboardList {
+            flex: 1; overflow-y: auto; padding: 5px;
+            font-family: sans-serif; /* İsimler okunaklı olsun diye standart font */
+            font-size: 12px; color: white;
+            text-align: left;
+        }
+        #leaderboardList li { margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 2000;
+        }
+        .modal-box {
+            background: linear-gradient(to bottom, #fff8e1, #ffecb3);
+            border: 4px solid #5d4037; border-radius: 20px; padding: 20px;
+            text-align: center;
+        }
+        .modal-box h2 { color: #d32f2f; margin: 0 0 10px 0; font-family: 'Titan One', cursive; }
+        .modal-box p { color: #4e342e; font-family: sans-serif; font-weight: bold; }
+
+        /* --- BUTON STİLLERİ (game-btn ve renk varyantları) --- */
+        .game-btn {
+            font-family: 'Titan One', cursive;
+            border: 3px solid #5d4037;
+            border-radius: 15px;
+            padding: 10px 20px;
+            color: #fff;
+            cursor: pointer;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 0px #3e2723;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .game-btn:active { transform: translateY(5px); box-shadow: 0 0 0 #3e2723; }
+        .btn-green { background: linear-gradient(to bottom, #66bb6a, #43a047); }
+        .btn-blue  { background: linear-gradient(to bottom, #42a5f5, #1e88e5); }
+        .btn-red   { background: linear-gradient(to bottom, #ef5350, #e53935); }
+
+        /* Alt panel (Google giriş + liderlik tablosu) */
+        .bottom-panel {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            margin-top: 1cqh;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Sabit oranlı oyun çerçevesi: tüm oyun bunun içinde -->
+    <div id="gameStage">
+
+    <div id="introScreen" onclick="closeIntro()">
+        <video id="introVideo" autoplay muted loop playsinline>
+            <source src="intro.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <img id="potImage" src="pot.png" alt="Tencere">
+    
+    <div id="gameUI" class="ui-layer hidden">
+        <div class="hud-bar">
+            <div id="scoreDisplay" class="hud-panel-item">SKOR: 0</div>
+            <div id="btnMenu" class="exit-btn">MENÜ</div>
+            <div id="infoDisplay" class="hud-panel-item">SÜRE: --</div>
+        </div>
+    </div>
+
+    <div id="mainMenu" class="menu-screen">
+        
+       <div class="mode-buttons-container">
+            <img src="buton_sonsuz.png" alt="Sonsuz Mod" class="image-btn" 
+                 ontouchstart="event.preventDefault(); startGame('ARCADE')" 
+                 onmousedown="startGame('ARCADE')">
+
+            <img src="buton_zaman.png" alt="Zamanla Yarış" class="image-btn" 
+                 ontouchstart="event.preventDefault(); startGame('TIME')" 
+                 onmousedown="startGame('TIME')">
+
+            <img src="buton_survival.png" alt="Zor Mod" class="image-btn" 
+                 ontouchstart="event.preventDefault(); startGame('SURVIVAL')" 
+                 onmousedown="startGame('SURVIVAL')">
+        </div>
+
+        <div class="bottom-panel">
+            <div id="authSection">
+                <button id="loginBtn" onclick="loginWithGoogle()">
+                    <svg width="18" height="18" viewBox="0 0 18 18" style="margin-right:5px"><path d="M17.64 9.2c0-.637-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706a5.41 5.41 0 0 1-.282-1.706c0-.593.102-1.17.282-1.706V4.962H.957A9.006 9.006 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962l3.007 2.332C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+                    Google ile Giriş
+                </button>
+                <p id="welcomeText" style="color:#ddd; margin-top:5px; font-size:12px; font-family:sans-serif; display:none;"></p>
+            </div>
+
+            <div class="leaderboard-container">
+                <div class="lb-tabs">
+                    <button class="tab-btn active" onclick="loadLeaderboard('TIME', this)">60sn</button>
+                    <button class="tab-btn" onclick="loadLeaderboard('SURVIVAL', this)">Zor Mod</button>
+                </div>
+                <div id="leaderboardList">
+                    <div style="text-align:center; padding-top:20px; color:#aaa;">Yükleniyor...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameOverScreen" class="menu-screen hidden">
+        <h1 style="font-size: 60px; color:#ff5252;">OYUN BİTTİ!</h1>
+        <p id="finalScoreText" style="font-size:30px; font-family:'Titan One', cursive; color:#fff; margin-bottom:20px;">Skorun: 0</p>
+        
+        <button id="adButton" class="game-btn btn-green" style="font-size:22px; margin-bottom:15px;" ontouchstart="watchAdToRevive()" onmousedown="watchAdToRevive()">
+            📺 REKLAM İZLE VE DEVAM ET
+        </button>
+        <p id="adStatus" style="display:none; color:yellow; font-family:sans-serif;">Reklam Yükleniyor...</p>
+        
+        <button class="game-btn btn-blue" style="font-size:22px;" ontouchstart="showMainMenu()" onmousedown="showMainMenu()">ANA MENÜYE DÖN</button>
+    </div>
+
+    <div id="exitModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2>EMİN MİSİN?</h2>
+            <p>Oyun ve skorun silinecek.<br>Menüye dönmek istiyor musun?</p>
+            <div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">
+                <button id="btnModalContinue" class="game-btn btn-green" style="font-size:18px; padding:5px 15px;">DEVAM ET</button>
+                <button id="btnModalExit" class="game-btn btn-red" style="font-size:18px; padding:5px 15px;">ÇIKIŞ YAP</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    </div><!-- /#gameStage -->
+
+    <script type="module">
+
+    window.closeIntro = function() {
+        const intro = document.getElementById('introScreen');
+        const video = document.getElementById('introVideo');
+        intro.style.transition = "opacity 0.5s";
+        intro.style.opacity = "0";
+        setTimeout(() => {
+            intro.style.display = 'none';
+            video.pause();
+        }, 500);
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    };
+
+    const popSounds = [
+        new Audio('pop1.mp3'), new Audio('pop2.mp3'), new Audio('pop3.mp3'), new Audio('pop4.mp3'), new Audio('pop5.mp3')
+    ];
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBnO3p12s8wnaJ77Au86sK5lAaRA3zW2aU",
+        authDomain: "popcorn-master-8b80e.firebaseapp.com",
+        projectId: "popcorn-master-8b80e",
+        storageBucket: "popcorn-master-8b80e.firebasestorage.app",
+        messagingSenderId: "923837653523",
+        appId: "1:923837653523:web:83096ea743aaafe65a95e6",
+        measurementId: "G-6N1JBBPH98"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    window.currentUser = null;
+    const CURRENT_SEASON = "SEZON_1"; 
+    
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const mainMenu = document.getElementById('mainMenu');
+    const gameUI = document.getElementById('gameUI');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const infoDisplay = document.getElementById('infoDisplay');
+    const finalScoreText = document.getElementById('finalScoreText');
+
+    const imgPopped = new Image(); imgPopped.src = 'popcorn.png';
+    const kernelImages = {
+        'normal': new Image(), 'golden': new Image(), 'frozen': new Image(), 'burnt': new Image(), 'bomb': new Image()
+    };
+    kernelImages['normal'].src = 'normal.png';
+    kernelImages['golden'].src = 'golden.png';
+    kernelImages['frozen'].src = 'frozen.png';
+    kernelImages['burnt'].src  = 'burnt.png';
+    kernelImages['bomb'].src   = 'bomb.png';
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    let difficultyTimer = 0;
+    let gameState = 'MENU'; 
+    let gameMode = 'ARCADE'; 
+    let score = 0;
+    let width, height;
+    let entities = []; 
+    let particles = []; 
+    let animationId;
+    let timeLeft = 60;
+    let lastTime = 0;
+    let spawnTimer = 0;
+    let reviveCount = 0; 
+
+    const input = { x: -100, y: -100, isDown: false, points: [] };
+    const TRAIL_LENGTH = 8; 
+
+    window.loginWithGoogle = async () => {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            window.currentUser = result.user;
+            document.getElementById('loginBtn').style.display = 'none'; 
+            const welcome = document.getElementById('welcomeText');
+            welcome.style.display = 'block';
+            welcome.innerText = "Selam " + window.currentUser.displayName.split(" ")[0];
+            loadLeaderboard('TIME'); 
+        } catch (error) {
+            console.error("Giriş Hatası:", error);
+        }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            window.currentUser = user;
+            document.getElementById('loginBtn').style.display = 'none'; 
+            const welcome = document.getElementById('welcomeText');
+            welcome.style.display = 'block';
+            welcome.innerText = "Selam " + user.displayName.split(" ")[0];
+            loadLeaderboard('TIME'); 
+        } else {
+            loadLeaderboard('TIME'); // Giriş yapmasa da tabloyu görsün (boş veya genel)
+        }
+    });
+
+    window.saveScoreToCloud = async (newScore) => {
+        if (!window.currentUser) return; 
+        try {
+            let saveMode = gameMode; 
+            const customDocId = `${window.currentUser.uid}_${saveMode}_${CURRENT_SEASON}`;
+            const scoreDocRef = doc(db, "scores", customDocId);
+            const docSnap = await getDoc(scoreDocRef);
+
+            if (docSnap.exists()) {
+                const oldScore = docSnap.data().score;
+                if (newScore > oldScore) {
+                    await setDoc(scoreDocRef, {
+                        uid: window.currentUser.uid,
+                        name: window.currentUser.displayName,
+                        photo: window.currentUser.photoURL,
+                        score: newScore, season: CURRENT_SEASON, mode: saveMode, date: new Date() 
+                    });
+                    loadLeaderboard(saveMode);
+                }
+            } else {
+                await setDoc(scoreDocRef, {
+                    uid: window.currentUser.uid,
+                    name: window.currentUser.displayName,
+                    photo: window.currentUser.photoURL,
+                    score: newScore, season: CURRENT_SEASON, mode: saveMode, date: new Date() 
+                });
+                loadLeaderboard(saveMode);
+            }
+        } catch (e) { console.error("Kaydetme hatası: ", e); }
+    };
+
+    window.loadLeaderboard = async (mode = 'TIME', btnElement = null) => {
+        const div = document.getElementById('leaderboardList');
+        if (btnElement) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+        }
+        div.innerHTML = "<div style='text-align:center; padding:10px; color:#aaa;'>Yükleniyor...</div>";
+
+        try {
+            const q = query(
+                collection(db, "scores"), 
+                where("season", "==", CURRENT_SEASON),
+                where("mode", "==", mode), 
+                orderBy("score", "desc"), 
+                limit(10)
+            );
+
+            const snapshot = await getDocs(q);
+            let html = `<ul style='padding:0; margin:0; list-style:none;'>`;
+            
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                html += `<li style="display:flex; justify-content:space-between; padding:2px 0;">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <img src="${data.photo}" style="width:16px; border-radius:50%;"> 
+                        <span>${data.name.split(" ")[0]}</span>
+                    </div>
+                    <b style="color:#ffeb3b">${data.score}</b>
+                </li>`;
+            });
+            html += "</ul>";
+            
+            if(snapshot.empty) html = "<div style='text-align:center; color:#aaa; font-size:10px; margin-top:10px;'>Henüz skor yok.</div>";
+            div.innerHTML = html;
+        } catch(e) {
+            console.error("Tablo hatası:", e);
+            div.innerHTML = "<div style='text-align:center; color:red; font-size:10px;'>Hata oluştu.</div>";
+        }
+    };
+
+    function getEventPos(canvas, e) {
+        const rect = canvas.getBoundingClientRect();
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (canvas.width / rect.width),
+            y: (clientY - rect.top) * (canvas.height / rect.height)
+        };
+    }
+
+    function updateInput(e, isDown) {
+        if (gameState !== 'PLAYING') return;
+        input.isDown = isDown;
+        if (isDown) {
+            if(e.type === 'touchmove' || e.type === 'touchstart') e.preventDefault();
+            const pos = getEventPos(canvas, e);
+            input.x = pos.x; input.y = pos.y;
+            input.points.push({x: pos.x, y: pos.y, life: 1.0});
+            if (input.points.length > TRAIL_LENGTH) input.points.shift();
+            checkCollisions(pos.x, pos.y);
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        } else { input.points = []; }
+    }
+
+    canvas.addEventListener('mousedown', e => updateInput(e, true));
+    canvas.addEventListener('mousemove', e => { if (input.isDown) updateInput(e, true); });
+    canvas.addEventListener('mouseup', e => updateInput(e, false));
+    canvas.addEventListener('touchstart', e => updateInput(e, true), {passive: false});
+    canvas.addEventListener('touchmove', e => updateInput(e, true), {passive: false});
+    canvas.addEventListener('touchend', e => updateInput(e, false));
+
+    // Sabit mantıksal çözünürlük: oyun her cihazda aynı oranda çizilir,
+    // CSS canvas'ı sahneye göre ölçekler (9:16).
+    const LOGICAL_W = 450, LOGICAL_H = 800;
+    function resize() {
+        width = canvas.width = LOGICAL_W;
+        height = canvas.height = LOGICAL_H;
+    }
+    window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', resize);
+    resize();
+
+    window.openExitModal = function() {
+        if (gameState === 'GAMEOVER') { showMainMenu(); return; }
+        gameState = 'PAUSED'; 
+        document.getElementById('exitModal').classList.remove('hidden');
+    }
+    window.closeExitModal = function() {
+        document.getElementById('exitModal').classList.add('hidden');
+        gameState = 'PLAYING';
+    }
+    window.confirmExitYes = function() {
+        document.getElementById('exitModal').classList.add('hidden');
+        showMainMenu();
+    }
+    window.showMainMenu = function() {
+        if (animationId) cancelAnimationFrame(animationId);
+        animationId = null;
+        gameState = 'MENU';
+        gameUI.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        mainMenu.classList.remove('hidden');
+        entities = []; particles = []; score = 0;
+    }
+
+    window.startGame = function(mode) {
+        if (animationId) cancelAnimationFrame(animationId);
+        reviveCount = 0; gameMode = mode; gameState = 'PLAYING';
+        score = 0; entities = []; particles = [];
+        difficultyTimer = 0;
+
+        if (mode === 'TIME') timeLeft = 60; else timeLeft = 0;
+        lastTime = performance.now(); spawnTimer = 0;
+
+        mainMenu.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        gameUI.classList.remove('hidden');
+        updateHUD();
+        animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+        gameState = 'GAMEOVER';
+        finalScoreText.innerText = "Skorun: " + score;
+        gameOverScreen.classList.remove('hidden'); 
+        gameUI.classList.add('hidden');            
+        
+        const adBtn = document.getElementById('adButton');
+        if (adBtn) {
+            if (reviveCount < 4) { adBtn.classList.remove('hidden'); adBtn.style.display = 'block'; } 
+            else { adBtn.classList.add('hidden'); adBtn.style.display = 'none'; }
+        }
+        document.getElementById('adStatus').style.display = 'none';
+        if (window.saveScoreToCloud) window.saveScoreToCloud(score);
+    }
+
+    class Kernel {
+        constructor() { this.reset(); }
+        reset() {
+            const pot = document.getElementById('potImage');
+            const stage = document.getElementById('gameStage');
+            const potRect = pot.getBoundingClientRect();
+            const stageRect = stage.getBoundingClientRect();
+            // Ekran (CSS) koordinatlarını canvas mantıksal koordinatlarına çevir
+            const scaleX = canvas.width / stageRect.width;
+            const scaleY = canvas.height / stageRect.height;
+            const potTop = (potRect.top - stageRect.top) * scaleY;
+            const potLeft = (potRect.left - stageRect.left) * scaleX;
+            const potW = potRect.width * scaleX;
+            const potH = potRect.height * scaleY;
+            this.y = potTop + potH * 0.55;
+            const spawnWidth = potW * 0.4;
+            const startX = potLeft + potW * 0.3;
+            this.x = startX + Math.random() * spawnWidth;
+            this.vx = (Math.random() - 0.5) * 2;
+            this.vy = -(Math.random() * 5 + 6);
+            this.radius = 25;
+            this.rotation = Math.random() * Math.PI * 2;
+            this.gravity = 0.08;
+            this.state = 'raw';
+            this.type = this.pickType();
+            this.hp = (this.type === 'frozen') ? 2 : 1;
+            this.markedForDeletion = false;
+        }
+        pickType() {
+            const r = Math.random();
+            if (r < 0.05) return 'bomb'; if (r < 0.10) return 'golden'; 
+            if (r < 0.20) return 'frozen'; if (r < 0.25) return 'burnt';  
+            return 'normal';               
+        }
+        update() {
+            this.vy += this.gravity; this.x += this.vx; this.y += this.vy;
+            this.rotation += 0.1;
+            if (this.y > height + 50) this.markedForDeletion = true;
+        }
+        draw(ctx) {
+            ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation);
+            let drawSize = this.radius * 2;
+            if (this.state === 'popped') {
+                drawSize = drawSize * 1.8;
+                if (imgPopped.complete) ctx.drawImage(imgPopped, -drawSize/2, -drawSize/2, drawSize, drawSize);
+                else { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0,0, this.radius, 0, Math.PI*2); ctx.fill(); }
+            } else {
+                let targetImg = kernelImages[this.type];
+                if (targetImg && targetImg.complete) ctx.drawImage(targetImg, -drawSize/2, -drawSize/2, drawSize, drawSize);
+                else {
+                    let color = 'yellow';
+                    if (this.type === 'bomb') color = 'red'; if (this.type === 'frozen') color = 'cyan';
+                    if (this.type === 'burnt') color = 'black'; if (this.type === 'golden') color = 'gold';
+                    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0,0, this.radius, 0, Math.PI*2); ctx.fill();
+                }
+            }
+            ctx.restore();
+        }
+        hit() {
+            if (this.state === 'popped') return; 
+            if (this.type === 'bomb') {
+                createExplosion(this.x, this.y, this.type); playTone(100, 'sawtooth'); 
+                if (gameMode === 'SURVIVAL') { endGame(); return; }
+                score = Math.max(0, score - 50); 
+                createFloatingText(this.x, this.y, "-50", "red");
+                this.markedForDeletion = true; return;
+            }
+            if (this.type === 'burnt') {
+                score = Math.max(0, score - 10); createFloatingText(this.x, this.y, "-10", "black");
+                playTone(150, 'square'); this.markedForDeletion = true;
+                createExplosion(this.x, this.y, 'burnt'); return;
+            }
+            if (this.type === 'frozen') {
+                this.hp--; playTone(800 + this.hp * 200, 'sine'); 
+                createFloatingText(this.x, this.y, "CRACK!", "cyan");
+                createExplosion(this.x, this.y, 'frozen'); if (this.hp > 0) return; 
+            }
+            this.state = 'popped'; this.vy = -5; playPopSound();
+            createExplosion(this.x, this.y, this.type); 
+            let points = 10;
+            if (this.type === 'golden') { points = 50; playTone(1200, 'sine'); } 
+            else if (this.type === 'frozen') { points = 30; playTone(1000, 'square'); }
+            score += points;
+            createFloatingText(this.x, this.y, "+" + points, (this.type==='golden'?'gold':'#fff'));
+        }
+    }
+
+    function createExplosion(x, y, type) {
+        let count = 20; let hue = 60; let speedMult = 1;
+        if (type === 'normal') { hue = 60; count = 15; }       
+        else if (type === 'golden') { hue = 45; count = 40; speedMult = 1.5; } 
+        else if (type === 'frozen') { hue = 190; count = 25; } 
+        else if (type === 'burnt')  { hue = 0; count = 10; }   
+        else if (type === 'bomb')   { hue = 0; count = 60; speedMult = 2.0; } 
+        for(let i=0; i<count; i++) {
+            const angle = Math.random() * Math.PI * 2; const velocity = (Math.random() * 10 + 2) * speedMult; 
+            let color;
+            if (type === 'burnt') color = `rgb(${Math.random()*50}, ${Math.random()*50}, ${Math.random()*50})`;
+            else color = `hsl(${hue}, 100%, ${Math.random() * 50 + 50}%)`;
+            particles.push({
+                x: x, y: y, vx: Math.cos(angle) * velocity, vy: Math.sin(angle) * velocity, 
+                life: 1.0, decay: Math.random() * 0.02 + 0.015, color: color, type: type, size: Math.random() * 3 + 2
+            });
+        }
+    }
+
+    function createFloatingText(x, y, text, color) {
+        particles.push({ x: x, y: y, vx: 0, vy: -2, life: 1.0, text: text, color: color, isText: true });
+    }
+
+    function checkCollisions(x, y) {
+        if (gameState !== 'PLAYING') return;
+        for (let i = entities.length - 1; i >= 0; i--) {
+            let e = entities[i];
+            let dx = e.x - x; let dy = e.y - y;
+            if (Math.sqrt(dx*dx + dy*dy) < e.radius + 30) e.hit();
+        }
+    }
+    function formatTime(totalSeconds) {
+        if (totalSeconds < 0) totalSeconds = 0;
+        let m = Math.floor(totalSeconds / 60); let s = Math.floor(totalSeconds % 60);
+        return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+    }
+    function updateHUD() {
+        scoreDisplay.innerText = "SKOR: " + score;
+        if (gameMode === 'TIME') infoDisplay.innerText = "SÜRE: " + formatTime(Math.ceil(timeLeft));
+        else if (gameMode === 'SURVIVAL') infoDisplay.innerText = "SÜRE: " + formatTime(Math.floor(difficultyTimer / 1000));
+        else infoDisplay.innerText = "MOD: SONSUZ";
+    }
+    
+    function playPopSound() {
+        const selectedSound = popSounds[Math.floor(Math.random() * popSounds.length)];
+        if (selectedSound) {
+            const sound = selectedSound.cloneNode(); 
+            sound.volume = 0.5; sound.playbackRate = 0.9 + Math.random() * 0.2; 
+            sound.play().catch(e => console.log("Ses hatası:", e));
+        }
+    }
+
+    function playTone(freq, type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    function gameLoop(timestamp) {
+        if (gameState === 'MENU' || gameState === 'GAMEOVER') return; 
+        if (gameState === 'PAUSED') { lastTime = timestamp; animationId = requestAnimationFrame(gameLoop); return; }
+
+        let deltaTime = (timestamp - lastTime) / 1000;
+        let deltaMs = timestamp - lastTime;
+        lastTime = timestamp;
+        if (deltaTime > 0.1) deltaTime = 0.016;
+        if (deltaMs > 100) deltaMs = 16;
+
+        ctx.clearRect(0, 0, width, height);
+        
+        if (gameMode === 'TIME') {
+            timeLeft -= deltaTime; if (timeLeft <= 0) endGame();
+        }
+        spawnTimer += deltaMs; 
+        if (gameMode === 'SURVIVAL') difficultyTimer += deltaMs;
+        
+        let spawnInterval;
+        if (gameMode === 'TIME') spawnInterval = 500; 
+        else if (gameMode === 'SURVIVAL') {
+            let difficultyLevel = Math.floor(difficultyTimer / 2500); 
+            spawnInterval = Math.max(150, 1500 - (difficultyLevel * 25)); 
+        } else spawnInterval = 1000; 
+        
+        if (spawnTimer > spawnInterval) { entities.push(new Kernel()); spawnTimer = 0; }
+        
+        if (input.points.length > 1) {
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 200, 50, 0.6)';
+            ctx.lineWidth = 8; ctx.lineCap = 'round';
+            for (let i = 0; i < input.points.length - 1; i++) {
+                const p1 = input.points[i]; const p2 = input.points[i+1];
+                ctx.globalAlpha = p1.life; ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                p1.life -= (deltaTime * 10); 
+            }
+            ctx.stroke(); ctx.globalAlpha = 1;
+            input.points = input.points.filter(p => p.life > 0);
+        }
+        
+        entities = entities.filter(e => !e.markedForDeletion);
+        entities.forEach(e => { e.update(); e.draw(ctx); });
+        
+        particles = particles.filter(p => p.life > 0);
+        ctx.globalCompositeOperation = 'lighter'; 
+        particles.forEach(p => {
+            p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.vx *= 0.92; p.vy *= 0.92;
+            p.life -= p.decay; if (p.life <= 0) return;
+            ctx.save(); ctx.globalAlpha = p.life; 
+            if (p.isText) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.font = "900 24px Arial"; ctx.fillStyle = p.color;
+                ctx.strokeStyle = "black"; ctx.lineWidth = 3;
+                ctx.strokeText(p.text, p.x, p.y - (1-p.life)*30);
+                ctx.fillText(p.text, p.x, p.y - (1-p.life)*30);
+                ctx.globalCompositeOperation = 'lighter';
+            } else {
+                ctx.fillStyle = p.color; ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+        });
+        ctx.globalCompositeOperation = 'source-over';
+        updateHUD();
+        animationId = requestAnimationFrame(gameLoop);
+    }
+
+    window.watchAdToRevive = function() {
+        reviveCount++;
+        const adButton = document.getElementById('adButton');
+        const adStatus = document.getElementById('adStatus');
+        if(adButton) adButton.classList.add('hidden');
+        if(adStatus) { adStatus.style.display = 'block'; adStatus.innerText = "Reklam Oynatılıyor... (3sn)"; }
+        setTimeout(() => {
+            if(adStatus) adStatus.style.display = 'none';
+            gameState = 'PLAYING';
+            document.getElementById('gameUI').classList.remove('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            entities = entities.filter(e => e.type !== 'bomb');
+            if (gameMode === 'TIME') { timeLeft += 15; createFloatingText(width/2, height/2, "+15 SANİYE!", "lime"); } 
+            else if (gameMode === 'SURVIVAL') createFloatingText(width/2, height/2, "SON ŞANS!", "red");
+            else createFloatingText(width/2, height/2, "DEVAM ET!", "lime");
+            lastTime = performance.now(); animationId = requestAnimationFrame(gameLoop); 
+        }, 3000); 
+    }
+
+    // Buton Bağlantıları
+    const btnMenu = document.getElementById('btnMenu');
+    if (btnMenu) {
+        btnMenu.addEventListener('touchstart', (e) => { e.preventDefault(); openExitModal(); }, {passive: false});
+        btnMenu.addEventListener('mousedown', openExitModal);
+    }
+    const btnContinue = document.getElementById('btnModalContinue');
+    if (btnContinue) {
+        btnContinue.addEventListener('touchstart', (e) => { e.preventDefault(); closeExitModal(); });
+        btnContinue.addEventListener('click', closeExitModal);
+    }
+    const btnExit = document.getElementById('btnModalExit');
+    if (btnExit) {
+        btnExit.addEventListener('touchstart', (e) => { e.preventDefault(); confirmExitYes(); });
+        btnExit.addEventListener('click', confirmExitYes);
+    }
+
+    </script>
+</body>
+</html>
