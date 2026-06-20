@@ -646,10 +646,10 @@
             const startX = spawnRect.left + spawnRect.w * 0.3;
             this.x = startX + Math.random() * spawnWidth;
             this.vx = (Math.random() - 0.5) * 2;
-            this.vy = -(Math.random() * 5 + 6);
+            this.vy = -(Math.random() * 5 + 8);   // biraz daha hızlı fırlama (8–13)
             this.radius = 25;
             this.rotation = Math.random() * Math.PI * 2;
-            this.gravity = 0.08;
+            this.gravity = 0.13;                   // ekran dışına kaçmasın diye yerçekimi artırıldı
             this.state = 'raw';
             this.type = this.pickType();
             this.hp = (this.type === 'frozen') ? 2 : 1;
