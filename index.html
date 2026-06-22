@@ -278,6 +278,18 @@
         .howto-list b { font-family: 'Titan One', cursive; color: #4e342e; font-size: 16px; display: block; line-height: 1.2; }
         .howto-list span { font-family: sans-serif; font-weight: bold; font-size: 12px; }
 
+        /* --- SES AÇ/KAPA butonu --- */
+        .mute-btn { cursor: pointer; pointer-events: auto; user-select: none; }
+        .hud-panel-item.mute-btn { padding: 6px 10px; line-height: 1; }
+        .menu-mute {
+            position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px;
+            z-index: 200; width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: #fff;
+            background: rgba(0,0,0,.45); border-radius: 50%;
+        }
+        .menu-mute:active { transform: scale(0.92); }
+
         /* Alt panel (Google giriş + liderlik tablosu) */
         .bottom-panel {
             display: flex;
@@ -305,12 +317,16 @@
         <div class="hud-bar">
             <div id="scoreDisplay" class="hud-panel-item">SCORE: 0</div>
             <div id="btnMenu" class="exit-btn">MENU</div>
-            <div id="infoDisplay" class="hud-panel-item">TIME: --</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <div id="infoDisplay" class="hud-panel-item">TIME: --</div>
+                <div class="hud-panel-item mute-btn" ontouchstart="event.preventDefault(); toggleSound()" onclick="toggleSound()">🔊</div>
+            </div>
         </div>
     </div>
 
     <div id="mainMenu" class="menu-screen">
-        
+        <div class="mute-btn menu-mute" ontouchstart="event.preventDefault(); toggleSound()" onclick="toggleSound()">🔊</div>
+
        <div class="mode-buttons-container">
             <img src="buton_sonsuz.png" alt="Endless Mode" class="image-btn"
                  ontouchstart="event.preventDefault(); startGame('ARCADE')" 
@@ -475,6 +491,22 @@
     let reviveCount = 0;
     let uiLockUntil = 0; // Ekran geçişlerinde "ghost-tap" sızmasını engeller
     let spawnRect = { top: 0, left: 0, w: 0, h: 0 }; // tencere doğuş alanı (önbellek)
+
+    // Ses + titreşim (tercih hatırlanır)
+    let soundOn = true;
+    try { soundOn = (localStorage.getItem('popcornSound') !== 'off'); } catch (e) {}
+    function refreshMuteIcons() {
+        document.querySelectorAll('.mute-btn').forEach(b => b.textContent = soundOn ? '🔊' : '🔇');
+    }
+    window.toggleSound = function() {
+        soundOn = !soundOn;
+        try { localStorage.setItem('popcornSound', soundOn ? 'on' : 'off'); } catch (e) {}
+        refreshMuteIcons();
+        if (soundOn && audioCtx.state === 'suspended') audioCtx.resume();
+    };
+    function haptic(pattern) {
+        if (soundOn && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} }
+    }
 
     const input = { x: -100, y: -100, isDown: false, points: [] };
     const TRAIL_LENGTH = 8; 
@@ -757,7 +789,8 @@
         hit() {
             if (this.state === 'popped') return; 
             if (this.type === 'bomb') {
-                createExplosion(this.x, this.y, this.type); playTone(100, 'sawtooth'); 
+                createExplosion(this.x, this.y, this.type); playTone(100, 'sawtooth');
+                haptic([0, 50, 40, 50]);
                 if (gameMode === 'SURVIVAL') { endGame(); return; }
                 score = Math.max(0, score - 50); 
                 createFloatingText(this.x, this.y, "-50", "red");
@@ -766,14 +799,14 @@
             if (this.type === 'burnt') {
                 score = Math.max(0, score - 10); createFloatingText(this.x, this.y, "-10", "black");
                 playTone(150, 'square'); this.markedForDeletion = true;
-                createExplosion(this.x, this.y, 'burnt'); return;
+                createExplosion(this.x, this.y, 'burnt'); haptic(25); return;
             }
             if (this.type === 'frozen') {
                 this.hp--; playTone(800 + this.hp * 200, 'sine'); 
                 createFloatingText(this.x, this.y, "CRACK!", "cyan");
-                createExplosion(this.x, this.y, 'frozen'); if (this.hp > 0) return; 
+                createExplosion(this.x, this.y, 'frozen'); haptic(15); if (this.hp > 0) return;
             }
-            this.state = 'popped'; this.vy = -5; playPopSound();
+            this.state = 'popped'; this.vy = -5; playPopSound(); haptic(12);
             createExplosion(this.x, this.y, this.type); 
             let points = 10;
             if (this.type === 'golden') { points = 50; playTone(1200, 'sine'); } 
@@ -827,6 +860,7 @@
     }
     
     function playPopSound() {
+        if (!soundOn) return;
         if (audioCtx.state === 'suspended') audioCtx.resume();
         if (!popBuffers.length) return;
         const buf = popBuffers[Math.floor(Math.random() * popBuffers.length)];
@@ -841,6 +875,7 @@
     }
 
     function playTone(freq, type) {
+        if (!soundOn) return;
         if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
         osc.connect(gain); gain.connect(audioCtx.destination);
@@ -964,6 +999,8 @@
         btnExit.addEventListener('touchstart', (e) => { e.preventDefault(); confirmExitYes(); });
         btnExit.addEventListener('click', confirmExitYes);
     }
+
+    refreshMuteIcons(); // kaydedilmiş ses tercihini uygula
 
     </script>
 
