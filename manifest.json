@@ -1,6 +1,7 @@
 {
   "name": "Popcorn Master",
   "short_name": "Popcorn Master",
+  "id": "/popcorn-master/",
   "description": "Pop the popcorn, dodge bombs and burnt kernels, beat your high score!",
   "start_url": "./",
   "scope": "./",
@@ -8,6 +9,7 @@
   "orientation": "portrait",
   "background_color": "#14141f",
   "theme_color": "#14141f",
+  "categories": ["games"],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
