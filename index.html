@@ -728,9 +728,11 @@
             if (r < 0.41) return 'burnt';  // %16
             return 'normal';               // %59
         }
-        update() {
-            this.vy += this.gravity; this.x += this.vx; this.y += this.vy;
-            this.rotation += 0.1;
+        update(f) {
+            this.vy += this.gravity * f;
+            this.x += this.vx * f;
+            this.y += this.vy * f;
+            this.rotation += 0.1 * f;
             if (this.y > height + 50) this.markedForDeletion = true;
         }
         draw(ctx) {
@@ -801,7 +803,7 @@
     }
 
     function createFloatingText(x, y, text, color) {
-        particles.push({ x: x, y: y, vx: 0, vy: -2, life: 1.0, text: text, color: color, isText: true });
+        particles.push({ x: x, y: y, vx: 0, vy: -2, life: 1.0, decay: 0.02, text: text, color: color, isText: true });
     }
 
     function checkCollisions(x, y) {
@@ -858,6 +860,10 @@
         if (deltaTime > 0.1) deltaTime = 0.016;
         if (deltaMs > 100) deltaMs = 16;
 
+        // Kare hızı bağımsızlığı: 60fps=1, 120fps=0.5, 30fps=2 -> her cihazda aynı hız
+        const f = deltaTime * 60;
+        const pDamp = Math.pow(0.92, f); // parçacık sürtünmesi (kareden bağımsız)
+
         ctx.clearRect(0, 0, width, height);
         
         if (gameMode === 'TIME') {
@@ -888,13 +894,14 @@
         }
         
         entities = entities.filter(e => !e.markedForDeletion);
-        entities.forEach(e => { e.update(); e.draw(ctx); });
+        entities.forEach(e => { e.update(f); e.draw(ctx); });
         
         particles = particles.filter(p => p.life > 0);
         // 1) Tüm parçacıkların hareketini güncelle
         for (const p of particles) {
-            p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.vx *= 0.92; p.vy *= 0.92;
-            p.life -= p.decay;
+            p.x += p.vx * f; p.y += p.vy * f; p.vy += 0.15 * f;
+            p.vx *= pDamp; p.vy *= pDamp;
+            p.life -= p.decay * f;
         }
         // 2) Nokta parçacıklar tek geçişte ('lighter') — save/restore yok (iOS için hızlı)
         ctx.globalCompositeOperation = 'lighter';
