@@ -1,6 +1,6 @@
 {
   "name": "Popcorn Master",
-  "short_name": "Popcorn",
+  "short_name": "Popcorn Master",
   "description": "Pop the popcorn, dodge bombs and burnt kernels, beat your high score!",
   "start_url": "./",
   "scope": "./",
