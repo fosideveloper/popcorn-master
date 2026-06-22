@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Popcorn Master</title>
+    <meta name="theme-color" content="#14141f">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         /* 1. ADIM: Google Font'u En Tepeye Ekledik */
         @import url('https://fonts.googleapis.com/css2?family=Titan+One&display=swap');
@@ -912,6 +915,15 @@
         btnExit.addEventListener('click', confirmExitYes);
     }
 
+    </script>
+
+    <script>
+        /* Service Worker kaydı (PWA/TWA için gerekli) */
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch((e) => console.log('SW:', e));
+            });
+        }
     </script>
 </body>
 </html>
