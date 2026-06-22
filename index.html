@@ -260,6 +260,24 @@
         }
         .gameover-box .game-btn { width: 100%; font-size: 18px; letter-spacing: .5px; }
 
+        /* --- NASIL OYNANIR butonu + popup --- */
+        .howto-open-btn {
+            background: linear-gradient(to bottom, #ffca28, #ffa000);
+            color: #5d4037; text-shadow: none;
+            font-size: 15px; padding: 7px 18px; margin-bottom: 10px;
+        }
+        .howto-box { width: 86%; max-width: 350px; max-height: 88%; overflow-y: auto; }
+        .howto-intro { color: #4e342e; font-family: sans-serif; font-weight: bold; margin: 0 0 12px; }
+        .howto-list { list-style: none; padding: 0; margin: 0 0 16px; text-align: left; }
+        .howto-list li {
+            display: flex; align-items: center; gap: 12px;
+            padding: 7px 0; border-bottom: 1px solid rgba(93,64,55,.18);
+        }
+        .howto-list li:last-child { border-bottom: none; }
+        .howto-list img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+        .howto-list b { font-family: 'Titan One', cursive; color: #4e342e; font-size: 16px; display: block; line-height: 1.2; }
+        .howto-list span { font-family: sans-serif; font-weight: bold; font-size: 12px; }
+
         /* Alt panel (Google giriş + liderlik tablosu) */
         .bottom-panel {
             display: flex;
@@ -303,9 +321,11 @@
                  onmousedown="startGame('TIME')">
 
             <img src="buton_survival.png" alt="Hard Mode" class="image-btn"
-                 ontouchstart="event.preventDefault(); startGame('SURVIVAL')" 
+                 ontouchstart="event.preventDefault(); startGame('SURVIVAL')"
                  onmousedown="startGame('SURVIVAL')">
         </div>
+
+        <button class="game-btn howto-open-btn" ontouchstart="event.preventDefault(); openHowTo()" onclick="openHowTo()">❓ HOW TO PLAY</button>
 
         <div class="bottom-panel">
             <div id="authSection">
@@ -313,7 +333,7 @@
                     <svg width="18" height="18" viewBox="0 0 18 18" style="margin-right:5px"><path d="M17.64 9.2c0-.637-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706a5.41 5.41 0 0 1-.282-1.706c0-.593.102-1.17.282-1.706V4.962H.957A9.006 9.006 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962l3.007 2.332C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
                     Sign in with Google
                 </button>
-                <p id="welcomeText" style="color:#ddd; margin-top:5px; font-size:12px; font-family:sans-serif; display:none;"></p>
+                <p id="welcomeText" style="color:#fff; font-weight:bold; margin-top:6px; font-size:13px; font-family:sans-serif; background:rgba(0,0,0,.5); padding:3px 12px; border-radius:12px; display:none;"></p>
             </div>
 
             <div class="leaderboard-container">
@@ -350,6 +370,21 @@
                 <button id="btnModalContinue" class="game-btn btn-green" style="font-size:18px; padding:5px 15px;">CONTINUE</button>
                 <button id="btnModalExit" class="game-btn btn-red" style="font-size:18px; padding:5px 15px;">EXIT</button>
             </div>
+        </div>
+    </div>
+
+    <div id="howToModal" class="modal-overlay hidden">
+        <div class="modal-box howto-box">
+            <h2>HOW TO PLAY</h2>
+            <p class="howto-intro">Tap or swipe across the corn to pop it!</p>
+            <ul class="howto-list">
+                <li><img src="normal.png" alt=""><div><b>Normal</b><span style="color:#2e7d32;">+10 points</span></div></li>
+                <li><img src="golden.png" alt=""><div><b>Golden</b><span style="color:#2e7d32;">+50 points</span></div></li>
+                <li><img src="frozen.png" alt=""><div><b>Frozen</b><span style="color:#1565c0;">2 taps &middot; +30 points</span></div></li>
+                <li><img src="burnt.png" alt=""><div><b>Burnt</b><span style="color:#c62828;">&minus;10 &middot; don't tap!</span></div></li>
+                <li><img src="bomb.png" alt=""><div><b>Bomb</b><span style="color:#c62828;">&minus;50 &middot; ends Hard Mode!</span></div></li>
+            </ul>
+            <button class="game-btn btn-blue" style="width:100%;" ontouchstart="event.preventDefault(); closeHowTo()" onclick="closeHowTo()">GOT IT</button>
         </div>
     </div>
 
@@ -599,6 +634,14 @@
     window.addEventListener('resize', resize);
     window.addEventListener('orientationchange', resize);
     resize();
+
+    window.openHowTo = function() {
+        document.getElementById('howToModal').classList.remove('hidden');
+    }
+    window.closeHowTo = function() {
+        document.getElementById('howToModal').classList.add('hidden');
+        uiLockUntil = performance.now() + 500; // kapatınca menü butonuna dokunma sızmasın
+    }
 
     window.openExitModal = function() {
         if (gameState === 'GAMEOVER') { showMainMenu(); return; }
